@@ -28,7 +28,6 @@ SECRET_KEY = 'django-insecure-6l^7t8#aw20uf5305@8fwd66v_%qnc&g%r@)s3mdfiuk(0(k4^
 DEBUG = False
 
 ALLOWED_HOSTS = ['*']
-FORCE_SCRIPT_NAME = '/back'
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 CSRF_TRUSTED_ORIGINS = [
@@ -150,8 +149,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = '/back/static/'
-MEDIA_URL = '/back/media/'
+STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_ROOT = BASE_DIR / 'media'
