@@ -31,6 +31,15 @@ ALLOWED_HOSTS = ['*']
 FORCE_SCRIPT_NAME = '/back'
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
+CSRF_TRUSTED_ORIGINS = [
+    'https://carinfopro.uz',
+    'https://www.carinfopro.uz',
+    'https://api.carinfopro.uz',
+]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+USE_X_FORWARDED_HOST = True
 
 
 # Application definition

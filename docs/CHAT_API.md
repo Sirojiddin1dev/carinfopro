@@ -1,29 +1,106 @@
-# Chat API & WebSocket Guide
+# CarInfo API & WebSocket Guide
 
-This document is for Flutter and Frontend teams. It explains how to start a chat, get room IDs, fetch history, and connect to WebSocket.
+This document is for Flutter and Frontend teams. It covers REST APIs and real-time chat over WebSocket.
 
-**Roles**
-1. Visitor: the person who scans the QR and opens the website.
-2. Owner: the car owner using the mobile app.
-
-**Base URL**
-Use your domain, for example:
+**Base URLs**
+REST base:
 ```
-https://carinfopro.uz
+https://carinfopro.uz/back
+```
+WebSocket base:
+```
+wss://carinfopro.uz/ws/chat/<room_id>/
+```
+If your reverse proxy keeps the `/back` prefix for WebSocket too, use:
+```
+wss://carinfopro.uz/back/ws/chat/<room_id>/
 ```
 
 **Auth**
 1. Owner uses JWT in `Authorization: Bearer <JWT_ACCESS>`.
 2. Visitor uses `visitor_token` returned by `/api/chat/start/`.
 
-**REST Endpoints**
+**Time Format**
+All timestamps are ISO 8601 strings.
+
+**User & Auth REST Endpoints**
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| POST | `/api/user/register/` | Public | Register user after QR scan. |
+| POST | `/api/login/` | Public | Login with phone and password. |
+| POST | `/api/token/refresh/` | Public | Refresh JWT access token. |
+| GET | `/api/profile/` | Owner (JWT) | Get current user profile. |
+| PUT | `/api/profile/` | Owner (JWT) | Update current user profile (partial allowed). |
+| PATCH | `/api/profile/` | Owner (JWT) | Partial update current user profile. |
+| GET | `/api/users/` | Public | List public users. |
+| GET | `/user/<user_id>/` | Public | Get public user profile by UUID. |
+| GET | `/api/docs/` | Public | Swagger UI. |
+| GET | `/api/redoc/` | Public | Redoc UI. |
+| GET | `/api/schema/` | Public | OpenAPI schema. |
+
+**Register After QR Scan**
+Request:
+```
+POST /api/user/register/
+Content-Type: application/json
+
+{
+  "user_id": "<USER_UUID>",
+  "phone_number": "+998901234567",
+  "password": "secret123",
+  "full_name": "Optional",
+  "phone_number_2": "Optional",
+  "car_model": "Optional",
+  "car_plate_number": "Optional",
+  "instagram": "Optional",
+  "telegram": "Optional",
+  "whatsapp": "Optional",
+  "is_profile_public": true
+}
+```
+If this user was already registered, the API returns:
+```
+{
+  "user_id": ["User already registered. Please login."]
+}
+```
+
+**Login**
+Request:
+```
+POST /api/login/
+Content-Type: application/json
+
+{
+  "phone_number": "+998901234567",
+  "password": "secret123"
+}
+```
+Response:
+```
+{
+  "tokens": {
+    "refresh": "jwt_refresh",
+    "access": "jwt_access"
+  },
+  "user": { ... }
+}
+```
+
+**Profile (Owner)**
+Use `Authorization: Bearer <JWT_ACCESS>`.
+
+**Public Profile**
+If user profile is hidden (`is_profile_public=false`), this returns 404.
+
+**Chat REST Endpoints**
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
 | POST | `/api/chat/start/` | Public | Create a room for a visitor. Returns `room_id` and `visitor_token`. |
 | GET | `/api/chat/rooms/` | Owner (JWT) | List rooms for the owner. Used by the app to get new room IDs. |
 | GET | `/api/chat/rooms/<room_id>/messages/` | Owner (JWT) or Visitor token | Get message history for a room. |
 
-**1) Start Chat (Visitor)**
+**Start Chat (Visitor)**
 Request:
 ```
 POST /api/chat/start/
@@ -43,7 +120,7 @@ Response:
 }
 ```
 
-**2) Get Room IDs (Owner App)**
+**Get Room IDs (Owner App)**
 The owner does not press Start. The visitor creates a room on the site.
 The owner app should poll:
 ```
@@ -65,7 +142,7 @@ Response:
 ```
 Polling suggestion: every 3 to 5 seconds, or on app foreground.
 
-**3) Get Message History**
+**Get Message History**
 Owner:
 ```
 GET /api/chat/rooms/<room_id>/messages/
@@ -89,23 +166,13 @@ Response:
 ```
 
 **WebSocket**
-Base:
-```
-ws://YOUR_DOMAIN/ws/chat/<room_id>/
-```
-If HTTPS, use:
-```
-wss://YOUR_DOMAIN/ws/chat/<room_id>/
-```
-
 Visitor connection:
 ```
-wss://YOUR_DOMAIN/ws/chat/<room_id>/?visitor=<visitor_token>
+wss://carinfopro.uz/ws/chat/<room_id>/?visitor=<visitor_token>
 ```
-
 Owner connection:
 ```
-wss://YOUR_DOMAIN/ws/chat/<room_id>/?token=<JWT_ACCESS>
+wss://carinfopro.uz/ws/chat/<room_id>/?token=<JWT_ACCESS>
 ```
 
 **Send a Message**
