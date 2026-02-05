@@ -15,11 +15,11 @@ django.setup()
 
 from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
-import config.routing
+from main import routing
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
     "websocket": URLRouter(
-        config.routing.websocket_urlpatterns
+        routing.websocket_urlpatterns
     ),
 })
