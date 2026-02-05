@@ -11,6 +11,9 @@ from .views import (
     LoginAPIView,
     UserProfileAPIView,
     UserListAPIView,
+    ChatStartAPIView,
+    ChatRoomListAPIView,
+    ChatMessageListAPIView,
 )
 
 urlpatterns = [
@@ -38,4 +41,9 @@ urlpatterns = [
     
     # Current user profile (requires authentication)
     path('api/profile/', UserProfileAPIView.as_view(), name='user-profile'),
+    
+    # Chat
+    path('api/chat/start/', ChatStartAPIView.as_view(), name='chat-start'),
+    path('api/chat/rooms/', ChatRoomListAPIView.as_view(), name='chat-rooms'),
+    path('api/chat/rooms/<uuid:room_id>/messages/', ChatMessageListAPIView.as_view(), name='chat-messages'),
 ]

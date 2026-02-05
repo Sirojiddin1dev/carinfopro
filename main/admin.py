@@ -8,7 +8,7 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from django.contrib import messages
 import qrcode
-from .models import User
+from .models import User, ChatRoom, ChatMessage
 
 
 @admin.register(User)
@@ -22,6 +22,7 @@ class UserAdmin(admin.ModelAdmin):
         'car_model',
         'car_plate_number',
         'is_active',
+        'is_profile_public',
         'created_at',
         'qr_codes_button',
     ]
@@ -29,6 +30,7 @@ class UserAdmin(admin.ModelAdmin):
     list_filter = [
         'is_active',
         'is_staff',
+        'is_profile_public',
         'created_at',
     ]
     
@@ -59,7 +61,7 @@ class UserAdmin(admin.ModelAdmin):
             'fields': ('instagram', 'telegram', 'whatsapp')
         }),
         (_('Status'), {
-            'fields': ('is_active', 'is_staff', 'is_superuser')
+            'fields': ('is_active', 'is_profile_public', 'is_staff', 'is_superuser')
         }),
         (_('Security'), {
             'fields': ('password',),
@@ -165,3 +167,72 @@ class UserAdmin(admin.ModelAdmin):
             _('Please select only one user to generate QR codes.'),
             level='warning'
         )
+
+
+@admin.register(ChatRoom)
+class ChatRoomAdmin(admin.ModelAdmin):
+    """Admin configuration for chat rooms."""
+    
+    list_display = [
+        'id',
+        'owner',
+        'visitor_name',
+        'is_active',
+        'created_at',
+        'updated_at',
+    ]
+    
+    list_filter = [
+        'is_active',
+        'created_at',
+    ]
+    
+    search_fields = [
+        'id',
+        'owner__phone_number',
+        'owner__full_name',
+        'visitor_name',
+    ]
+    
+    readonly_fields = [
+        'id',
+        'visitor_token',
+        'created_at',
+        'updated_at',
+    ]
+
+
+@admin.register(ChatMessage)
+class ChatMessageAdmin(admin.ModelAdmin):
+    """Admin configuration for chat messages."""
+    
+    list_display = [
+        'id',
+        'room',
+        'sender_type',
+        'sender',
+        'short_content',
+        'created_at',
+    ]
+    
+    list_filter = [
+        'sender_type',
+        'created_at',
+    ]
+    
+    search_fields = [
+        'content',
+        'room__id',
+        'sender__phone_number',
+        'sender__full_name',
+    ]
+    
+    readonly_fields = [
+        'id',
+        'created_at',
+    ]
+    
+    def short_content(self, obj):
+        return (obj.content[:40] + '...') if len(obj.content) > 40 else obj.content
+    
+    short_content.short_description = _('Content')

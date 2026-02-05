@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import User
+from .models import User, ChatRoom, ChatMessage
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -19,6 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
             'instagram',
             'telegram',
             'whatsapp',
+            'is_profile_public',
             'created_at',
             'updated_at',
         ]
@@ -46,6 +47,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             'instagram',
             'telegram',
             'whatsapp',
+            'is_profile_public',
             'password',
         ]
     
@@ -71,6 +73,7 @@ class UserCreateByUUIDSerializer(serializers.Serializer):
     instagram = serializers.CharField(required=False, allow_blank=True, max_length=255)
     telegram = serializers.CharField(required=False, allow_blank=True, max_length=255)
     whatsapp = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    is_profile_public = serializers.BooleanField(required=False)
     
     def validate_user_id(self, value):
         """Check if user with this UUID exists."""
@@ -98,6 +101,8 @@ class UserCreateByUUIDSerializer(serializers.Serializer):
         user.instagram = self.validated_data.get('instagram', '')
         user.telegram = self.validated_data.get('telegram', '')
         user.whatsapp = self.validated_data.get('whatsapp', '')
+        if 'is_profile_public' in self.validated_data:
+            user.is_profile_public = self.validated_data['is_profile_public']
         
         user.set_password(self.validated_data['password'])
         user.save()
@@ -150,3 +155,45 @@ class TokenResponseSerializer(serializers.Serializer):
     refresh = serializers.CharField()
     access = serializers.CharField()
     user = UserSerializer()
+
+
+class ChatStartSerializer(serializers.Serializer):
+    """Serializer for starting a chat room from QR scan."""
+    
+    user_id = serializers.UUIDField(required=True)
+    visitor_name = serializers.CharField(required=False, allow_blank=True, max_length=100)
+
+
+class ChatRoomSerializer(serializers.ModelSerializer):
+    """Serializer for chat room listing."""
+    
+    owner_id = serializers.UUIDField(source='owner.id', read_only=True)
+    
+    class Meta:
+        model = ChatRoom
+        fields = [
+            'id',
+            'owner_id',
+            'visitor_name',
+            'is_active',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'owner_id', 'created_at', 'updated_at']
+
+
+class ChatMessageSerializer(serializers.ModelSerializer):
+    """Serializer for chat messages."""
+    
+    room_id = serializers.UUIDField(source='room.id', read_only=True)
+    
+    class Meta:
+        model = ChatMessage
+        fields = [
+            'id',
+            'room_id',
+            'sender_type',
+            'content',
+            'created_at',
+        ]
+        read_only_fields = ['id', 'room_id', 'created_at']

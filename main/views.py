@@ -4,12 +4,15 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
-from .models import User
+from .models import User, ChatRoom
 from .serializers import (
     UserSerializer,
     UserCreateByUUIDSerializer,
     LoginSerializer,
     TokenResponseSerializer,
+    ChatStartSerializer,
+    ChatRoomSerializer,
+    ChatMessageSerializer,
 )
 
 
@@ -37,7 +40,7 @@ class UserDetailAPIView(APIView):
     )
     def get(self, request, user_id):
         """Get user public profile."""
-        user = get_object_or_404(User, id=user_id)
+        user = get_object_or_404(User, id=user_id, is_profile_public=True)
         serializer = UserSerializer(user)
         return Response(serializer.data)
 
@@ -225,6 +228,121 @@ class UserListAPIView(APIView):
     )
     def get(self, request):
         """List all active users."""
-        users = User.objects.filter(is_active=True)
+        users = User.objects.filter(is_active=True, is_profile_public=True)
         serializer = UserSerializer(users, many=True)
+        return Response(serializer.data)
+
+
+class ChatStartAPIView(APIView):
+    """
+    API view to start a chat room after QR scan.
+    """
+    permission_classes = [AllowAny]
+    
+    @extend_schema(
+        summary="Start chat by user UUID",
+        description="Create a chat room for a visitor and return room_id + visitor_token.",
+        request=ChatStartSerializer,
+        responses={
+            200: OpenApiResponse(
+                response={
+                    "type": "object",
+                    "properties": {
+                        "room_id": {"type": "string"},
+                        "visitor_token": {"type": "string"},
+                        "ws_path": {"type": "string"},
+                    }
+                },
+                description="Chat room created"
+            ),
+            400: OpenApiResponse(description="Validation error"),
+            404: OpenApiResponse(description="User not found"),
+        },
+        tags=["Chat"],
+    )
+    def post(self, request):
+        serializer = ChatStartSerializer(data=request.data)
+        if serializer.is_valid():
+            owner = get_object_or_404(User, id=serializer.validated_data['user_id'], is_active=True)
+            room = ChatRoom.objects.create(
+                owner=owner,
+                visitor_name=serializer.validated_data.get('visitor_name', '')
+            )
+            return Response({
+                'room_id': str(room.id),
+                'visitor_token': str(room.visitor_token),
+                'ws_path': f"/ws/chat/{room.id}/",
+            }, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ChatRoomListAPIView(APIView):
+    """
+    API view to list chat rooms for the authenticated user.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    @extend_schema(
+        summary="List chat rooms",
+        description="Get chat rooms for the authenticated user.",
+        responses={
+            200: OpenApiResponse(response=ChatRoomSerializer(many=True), description="Chat rooms"),
+            401: OpenApiResponse(description="Authentication required"),
+        },
+        tags=["Chat"],
+    )
+    def get(self, request):
+        rooms = ChatRoom.objects.filter(owner=request.user).order_by('-updated_at')
+        serializer = ChatRoomSerializer(rooms, many=True)
+        return Response(serializer.data)
+
+
+class ChatMessageListAPIView(APIView):
+    """
+    API view to list messages for a chat room.
+    """
+    permission_classes = [AllowAny]
+    
+    @extend_schema(
+        summary="List chat messages",
+        description="Get messages for a chat room. Owner uses JWT; visitor uses visitor token.",
+        parameters=[
+            OpenApiParameter(
+                name="room_id",
+                type=str,
+                location=OpenApiParameter.PATH,
+                description="Chat room UUID",
+                required=True,
+            ),
+            OpenApiParameter(
+                name="visitor",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                description="Visitor token (required for anonymous visitor)",
+                required=False,
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(response=ChatMessageSerializer(many=True), description="Messages"),
+            401: OpenApiResponse(description="Authentication required"),
+            403: OpenApiResponse(description="Not allowed"),
+            404: OpenApiResponse(description="Room not found"),
+        },
+        tags=["Chat"],
+    )
+    def get(self, request, room_id):
+        room = get_object_or_404(ChatRoom, id=room_id, is_active=True)
+        
+        if request.user.is_authenticated and request.user == room.owner:
+            allowed = True
+        else:
+            visitor_token = request.query_params.get('visitor')
+            allowed = visitor_token and visitor_token == str(room.visitor_token)
+        
+        if not allowed:
+            return Response({'detail': 'Not allowed.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        messages = room.messages.order_by('created_at')
+        serializer = ChatMessageSerializer(messages, many=True)
         return Response(serializer.data)
