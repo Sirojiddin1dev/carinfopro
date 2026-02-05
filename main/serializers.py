@@ -81,6 +81,9 @@ class UserCreateByUUIDSerializer(serializers.Serializer):
             self.user = User.objects.get(id=value)
         except User.DoesNotExist:
             raise serializers.ValidationError("User with this UUID does not exist.")
+        
+        if self.user.phone_number:
+            raise serializers.ValidationError("User already registered. Please login.")
         return value
     
     def validate_phone_number(self, value):
