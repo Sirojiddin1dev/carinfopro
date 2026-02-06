@@ -252,3 +252,34 @@ input[type="text"] {
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 600px) {
+  .page {
+    padding: 24px 14px 40px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .profile-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .messages {
+    height: 260px;
+  }
+
+  .composer {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .scan-card .scan-input {
+    flex-direction: column;
+  }
+}

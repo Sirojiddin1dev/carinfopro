@@ -15,18 +15,35 @@
 
       <section class="card profile-card">
         <div class="card-title">Avtomobil egasi</div>
-        <div class="profile-row">
-          <div class="avatar">A</div>
-          <div>
-            <div class="profile-name">Ism ko‘rsatilmagan</div>
-            <div class="muted">Profil ma’lumoti API’siz demo holatda</div>
+        {% if is_public %}
+          <div class="profile-row">
+            <div class="avatar">{{ user.full_name|default:"A"|slice:":1" }}</div>
+            <div>
+              <div class="profile-name">{{ user.full_name|default:"Ism ko'rsatilmagan" }}</div>
+              <div class="muted">Profil ma'lumotlari ochiq</div>
+            </div>
           </div>
-        </div>
-        <div class="profile-meta">
-          <div><span class="label">Car</span> Demo model</div>
-          <div><span class="label">Plate</span> 00 A 000 AA</div>
-          <div><span class="label">User ID</span> <code id="userId"></code></div>
-        </div>
+          <div class="profile-meta">
+            <div><span class="label">Tel</span> {{ user.phone_number|default:"-" }}</div>
+            <div><span class="label">Tel 2</span> {{ user.phone_number_2|default:"-" }}</div>
+            <div><span class="label">Car</span> {{ user.car_model|default:"-" }}</div>
+            <div><span class="label">Plate</span> {{ user.car_plate_number|default:"-" }}</div>
+            <div><span class="label">Instagram</span> {{ user.instagram|default:"-" }}</div>
+            <div><span class="label">Telegram</span> {{ user.telegram|default:"-" }}</div>
+            <div><span class="label">WhatsApp</span> {{ user.whatsapp|default:"-" }}</div>
+          </div>
+        {% else %}
+          <div class="profile-row">
+            <div class="avatar">?</div>
+            <div>
+              <div class="profile-name">Profil yashirilgan</div>
+              <div class="muted">Foydalanuvchi ma'lumotlari ko'rsatilmaydi</div>
+            </div>
+          </div>
+          <div class="profile-meta">
+            <div class="muted">Chat orqali bog'lanishingiz mumkin</div>
+          </div>
+        {% endif %}
       </section>
 
       <section class="card chat-card">
