@@ -54,6 +54,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
         
         message = (data.get('message') or '').strip()
+        client_msg_id = data.get('client_msg_id')
         if not message:
             return
         
@@ -71,6 +72,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'sender_type': sender_type,
             'message': msg.content,
             'created_at': msg.created_at.isoformat(),
+            'client_msg_id': client_msg_id,
         }
         
         await self.channel_layer.group_send(

@@ -5,6 +5,15 @@
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
+  function uuid() {
+    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+    return 'xxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = Math.random() * 16 | 0;
+      var v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
   function renderMessage(container, msg) {
     var el = document.createElement('div');
     el.className = 'msg' + (msg.sender === 'visitor' ? ' me' : '');
@@ -55,6 +64,7 @@
     var visitorToken = null;
     var seen = {};
     var storeKey = 'carinfo_room_' + userId;
+    var lastSendAt = 0;
 
     if (userEl) userEl.textContent = userId;
 
@@ -66,6 +76,7 @@
     }
 
     function messageKey(msg) {
+      if (msg.client_msg_id) return 'cid:' + msg.client_msg_id;
       if (msg.id) return 'id:' + msg.id;
       if (msg.created_at) return msg.sender + '|' + msg.created_at + '|' + msg.text;
       return msg.sender + '|' + msg.text + '|' + msg.time;
@@ -110,6 +121,7 @@
             var data = JSON.parse(evt.data);
             addMessage({
               id: data.id || null,
+              client_msg_id: data.client_msg_id || null,
               sender: data.sender_type || 'owner',
               text: data.message || '',
               time: formatTime(data.created_at),
@@ -181,11 +193,25 @@
         }
         restBase = restBases[index];
         var url = restBase + '/api/chat/start/';
-        requestJson('POST', url, { user_id: userId, visitor_name: '' })
+        var payload = { user_id: userId, visitor_name: '' };
+        if (roomId && visitorToken) {
+          payload.room_id = roomId;
+          payload.visitor_token = visitorToken;
+        }
+        requestJson('POST', url, payload)
           .then(function (data) {
             roomId = data.room_id;
             visitorToken = data.visitor_token;
             saveStoredRoom();
+            try {
+              var params = new URLSearchParams(window.location.search);
+              params.set('room_id', roomId);
+              params.set('visitor_token', visitorToken);
+              var nextUrl = window.location.pathname + '?' + params.toString();
+              window.history.replaceState(null, '', nextUrl);
+            } catch (e) {
+              // ignore url update errors
+            }
             clearMessages();
             loadHistory().then(function () {
               connectWebSocket(data.ws_path || ('/ws/chat/' + roomId + '/'));
@@ -203,13 +229,26 @@
     }
 
     function resumeChat() {
+      var params = null;
+      try {
+        params = new URLSearchParams(window.location.search);
+      } catch (e) {
+        params = null;
+      }
+      var roomFromUrl = params ? params.get('room_id') : null;
+      var tokenFromUrl = params ? params.get('visitor_token') : null;
       var stored = loadStoredRoom();
-      if (!stored || !stored.roomId || !stored.visitorToken) {
+      if (roomFromUrl && tokenFromUrl) {
+        roomId = roomFromUrl;
+        visitorToken = tokenFromUrl;
+      } else if (stored && stored.roomId && stored.visitorToken) {
+        roomId = stored.roomId;
+        visitorToken = stored.visitorToken;
+      }
+      if (!roomId || !visitorToken) {
         startChat();
         return;
       }
-      roomId = stored.roomId;
-      visitorToken = stored.visitorToken;
       clearMessages();
       setStatus('Oldingi chat tiklanmoqda...');
       loadHistory().then(function () {
@@ -223,11 +262,15 @@
     function sendMessage() {
       var text = (input.value || '').trim();
       if (!text) return;
+      var now = Date.now();
+      if (now - lastSendAt < 350) return;
+      lastSendAt = now;
       if (!ws || ws.readyState !== 1) {
         setStatus('Ulanish yo‘q. Qayta ulaning.', 'err');
         return;
       }
-      ws.send(JSON.stringify({ message: text }));
+      var msgId = uuid();
+      ws.send(JSON.stringify({ message: text, client_msg_id: msgId }));
       input.value = '';
     }
 

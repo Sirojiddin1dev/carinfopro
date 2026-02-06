@@ -165,6 +165,8 @@ class ChatStartSerializer(serializers.Serializer):
     
     user_id = serializers.UUIDField(required=True)
     visitor_name = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    room_id = serializers.UUIDField(required=False)
+    visitor_token = serializers.UUIDField(required=False)
 
 
 class ChatRoomSerializer(serializers.ModelSerializer):

@@ -264,6 +264,22 @@ class ChatStartAPIView(APIView):
         serializer = ChatStartSerializer(data=request.data)
         if serializer.is_valid():
             owner = get_object_or_404(User, id=serializer.validated_data['user_id'], is_active=True)
+            room_id = serializer.validated_data.get('room_id')
+            visitor_token = serializer.validated_data.get('visitor_token')
+            if room_id and visitor_token:
+                existing = ChatRoom.objects.filter(
+                    id=room_id,
+                    visitor_token=visitor_token,
+                    owner=owner,
+                    is_active=True
+                ).first()
+                if existing:
+                    return Response({
+                        'room_id': str(existing.id),
+                        'visitor_token': str(existing.visitor_token),
+                        'ws_path': f"/ws/chat/{existing.id}/",
+                    }, status=status.HTTP_200_OK)
+            
             room = ChatRoom.objects.create(
                 owner=owner,
                 visitor_name=serializer.validated_data.get('visitor_name', '')
