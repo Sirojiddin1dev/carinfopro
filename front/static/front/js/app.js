@@ -17,9 +17,21 @@
     var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
     if (body) opts.body = JSON.stringify(body);
     return fetch(url, opts).then(function (res) {
-      return res.json().then(function (data) {
+      return res.text().then(function (text) {
+        var data = null;
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch (e) {
+            var parseErr = new Error('API JSON emas: ' + res.status);
+            parseErr.raw = text;
+            throw parseErr;
+          }
+        } else {
+          data = {};
+        }
         if (!res.ok) {
-          var err = data && data.detail ? data.detail : 'Request failed';
+          var err = data && (data.detail || data.error) ? (data.detail || data.error) : ('Request failed (' + res.status + ')');
           throw new Error(err);
         }
         return data;
@@ -30,6 +42,7 @@
   function initChat(opts) {
     var userId = opts.userId || 'unknown';
     var restBase = opts.restBase || '';
+    var restBases = [restBase];
     var wsBase = opts.wsBase || ((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
     var userEl = document.getElementById('userId');
     var list = document.getElementById('messages');
@@ -49,12 +62,10 @@
     }
 
     function connectWebSocket(wsPath) {
-      var paths = [wsPath, '/back' + wsPath];
-      var index = 0;
       var opened = false;
 
       function tryConnect() {
-        var path = paths[index];
+        var path = wsPath;
         var url = wsBase + path + '?visitor=' + encodeURIComponent(visitorToken);
         ws = new WebSocket(url);
 
@@ -82,11 +93,6 @@
         };
 
         ws.onclose = function () {
-          if (!opened && index < paths.length - 1) {
-            index += 1;
-            tryConnect();
-            return;
-          }
           setStatus('Ulanish uzildi', 'err');
           retryBtn.hidden = false;
         };
@@ -112,18 +118,31 @@
 
     function startChat() {
       setStatus('Chat ochilmoqda...');
-      var url = restBase + '/api/chat/start/';
-      requestJson('POST', url, { user_id: userId, visitor_name: '' })
-        .then(function (data) {
-          roomId = data.room_id;
-          visitorToken = data.visitor_token;
-          loadHistory();
-          connectWebSocket(data.ws_path || ('/ws/chat/' + roomId + '/'));
-        })
-        .catch(function (err) {
-          setStatus(err.message || 'Chatni ochib bo‘lmadi', 'err');
+      retryBtn.hidden = true;
+      var index = 0;
+
+      function tryBase() {
+        if (index >= restBases.length) {
+          setStatus('Chatni ochib bo‘lmadi', 'err');
           retryBtn.hidden = false;
-        });
+          return;
+        }
+        restBase = restBases[index];
+        var url = restBase + '/api/chat/start/';
+        requestJson('POST', url, { user_id: userId, visitor_name: '' })
+          .then(function (data) {
+            roomId = data.room_id;
+            visitorToken = data.visitor_token;
+            loadHistory();
+            connectWebSocket(data.ws_path || ('/ws/chat/' + roomId + '/'));
+          })
+          .catch(function () {
+            index += 1;
+            tryBase();
+          });
+      }
+
+      tryBase();
     }
 
     function sendMessage() {
