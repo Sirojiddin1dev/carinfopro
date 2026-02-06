@@ -141,7 +141,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     def get_profile_url(self):
         """Returns the user profile URL."""
-        return f"https://carinfopro.uz/user/{self.id}"
+        return f"https://api.carinfopro.uz/user/{self.id}"
 
 
 class ChatRoom(models.Model):
