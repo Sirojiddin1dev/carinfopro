@@ -6,11 +6,9 @@ from drf_spectacular.views import (
     SpectacularRedocView,
 )
 from .views import (
-    UserDetailAPIView,
     UserCreateByUUIDAPIView,
     LoginAPIView,
     UserProfileAPIView,
-    UserListAPIView,
     ChatStartAPIView,
     ChatRoomListAPIView,
     ChatMessageListAPIView,
@@ -23,12 +21,6 @@ urlpatterns = [
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     # Redoc UI (alternative)
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-    
-    # User list
-    path('api/users/', UserListAPIView.as_view(), name='user-list'),
-    
-    # Public user profile by UUID
-    path('user/<uuid:user_id>/', UserDetailAPIView.as_view(), name='user-detail'),
     
     # User registration/update after QR scan
     path('api/user/register/', UserCreateByUUIDAPIView.as_view(), name='user-register'),

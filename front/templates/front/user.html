@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CarInfo | Chat</title>
+    <link rel="stylesheet" href="/static/front/css/styles.css" />
+  </head>
+  <body class="bg-grid">
+    <main class="page chat-layout">
+      <header class="topbar">
+        <div class="brand">CarInfo</div>
+        <div class="badge">Demo Chat</div>
+      </header>
+
+      <section class="card profile-card">
+        <div class="card-title">Avtomobil egasi</div>
+        <div class="profile-row">
+          <div class="avatar">A</div>
+          <div>
+            <div class="profile-name">Ism ko‘rsatilmagan</div>
+            <div class="muted">Profil ma’lumoti API’siz demo holatda</div>
+          </div>
+        </div>
+        <div class="profile-meta">
+          <div><span class="label">Car</span> Demo model</div>
+          <div><span class="label">Plate</span> 00 A 000 AA</div>
+          <div><span class="label">User ID</span> <code id="userId"></code></div>
+        </div>
+      </section>
+
+      <section class="card chat-card">
+        <div class="card-title">Xabarlar</div>
+        <div id="status" class="status">Ulanish tayyorlanmoqda...</div>
+        <div id="messages" class="messages"></div>
+        <div class="composer">
+          <input id="messageInput" type="text" placeholder="Xabar yozing..." />
+          <button id="sendBtn" class="btn">Yuborish</button>
+        </div>
+        <div class="actions">
+          <button id="retryBtn" class="btn btn-ghost" type="button" hidden>Qayta ulanish</button>
+        </div>
+        <div class="hint">Bu demo chat. Xabarlar faqat shu brauzerda saqlanadi.</div>
+      </section>
+    </main>
+
+    <script src="/static/front/js/app.js"></script>
+    <script>
+      window.CarInfoChat.init({
+        userId: "{{ user_id }}",
+        restBase: "/back",
+        wsBase: (location.protocol === "https:" ? "wss://" : "ws://") + location.host
+      });
+    </script>
+  </body>
+  </html>

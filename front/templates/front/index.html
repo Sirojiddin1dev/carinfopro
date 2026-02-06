@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CarInfo | QR Skan</title>
+    <link rel="stylesheet" href="/static/front/css/styles.css" />
+  </head>
+  <body class="bg-grid">
+    <main class="page">
+      <header class="hero">
+        <div class="brand">CarInfo</div>
+        <h1>QR kodni skaner qiling va egasi bilan yozishing</h1>
+        <p class="muted">
+          Bu demo sahifa. Hozircha backend API ishlatilmaydi, chat faqat lokal ko‘rinishda.
+        </p>
+      </header>
+
+      <section class="card steps">
+        <div class="card-title">Qadamlar</div>
+        <ol>
+          <li>QR kodni skaner qilasiz.</li>
+          <li>Sahifa avtomatik chatga yo‘naltiradi.</li>
+          <li>Xabar yozib, mashina egasiga yuborasiz.</li>
+        </ol>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        var input = document.getElementById('userIdInput');
+        var btn = document.getElementById('openBtn');
+
+        btn.addEventListener('click', function () {
+          var val = (input.value || '').trim();
+          if (!val) {
+            alert('UUID kiriting.');
+            return;
+          }
+          window.location.href = '/user/' + encodeURIComponent(val) + '/';
+        });
+      })();
+    </script>
+  </body>
+  </html>

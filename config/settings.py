@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'channels',
     'main.apps.MainConfig',
+    'front.apps.FrontConfig',
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
