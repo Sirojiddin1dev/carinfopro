@@ -153,7 +153,6 @@
         return;
       }
       ws.send(JSON.stringify({ message: text }));
-      renderMessage(list, { sender: 'visitor', text: text, time: nowTime() });
       input.value = '';
     }
 
