@@ -53,8 +53,35 @@
     var ws = null;
     var roomId = null;
     var visitorToken = null;
+    var seen = {};
+    var storeKey = 'carinfo_room_' + userId;
 
     if (userEl) userEl.textContent = userId;
+
+    function formatTime(iso) {
+      if (!iso) return nowTime();
+      var d = new Date(iso);
+      if (isNaN(d)) return nowTime();
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function messageKey(msg) {
+      if (msg.id) return 'id:' + msg.id;
+      if (msg.created_at) return msg.sender + '|' + msg.created_at + '|' + msg.text;
+      return msg.sender + '|' + msg.text + '|' + msg.time;
+    }
+
+    function addMessage(msg) {
+      var key = messageKey(msg);
+      if (seen[key]) return;
+      seen[key] = true;
+      renderMessage(list, msg);
+    }
+
+    function clearMessages() {
+      list.innerHTML = '';
+      seen = {};
+    }
 
     function setStatus(text, kind) {
       statusEl.textContent = text;
@@ -67,6 +94,9 @@
       function tryConnect() {
         var path = wsPath;
         var url = wsBase + path + '?visitor=' + encodeURIComponent(visitorToken);
+        if (ws && (ws.readyState === 0 || ws.readyState === 1)) {
+          ws.close();
+        }
         ws = new WebSocket(url);
 
         ws.onopen = function () {
@@ -78,10 +108,12 @@
         ws.onmessage = function (evt) {
           try {
             var data = JSON.parse(evt.data);
-            renderMessage(list, {
+            addMessage({
+              id: data.id || null,
               sender: data.sender_type || 'owner',
               text: data.message || '',
-              time: nowTime()
+              time: formatTime(data.created_at),
+              created_at: data.created_at || null
             });
           } catch (e) {
             // ignore invalid messages
@@ -103,17 +135,37 @@
 
     function loadHistory() {
       var url = restBase + '/api/chat/rooms/' + roomId + '/messages/?visitor=' + encodeURIComponent(visitorToken);
-      requestJson('GET', url).then(function (data) {
+      return requestJson('GET', url).then(function (data) {
         data.forEach(function (m) {
-          renderMessage(list, {
+          addMessage({
+            id: m.id || null,
             sender: m.sender_type || 'owner',
             text: m.content || '',
-            time: nowTime()
+            time: formatTime(m.created_at),
+            created_at: m.created_at || null
           });
         });
-      }).catch(function () {
-        // history is optional
       });
+    }
+
+    function loadStoredRoom() {
+      try {
+        var raw = localStorage.getItem(storeKey);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function saveStoredRoom() {
+      localStorage.setItem(storeKey, JSON.stringify({
+        roomId: roomId,
+        visitorToken: visitorToken
+      }));
+    }
+
+    function clearStoredRoom() {
+      localStorage.removeItem(storeKey);
     }
 
     function startChat() {
@@ -133,8 +185,13 @@
           .then(function (data) {
             roomId = data.room_id;
             visitorToken = data.visitor_token;
-            loadHistory();
-            connectWebSocket(data.ws_path || ('/ws/chat/' + roomId + '/'));
+            saveStoredRoom();
+            clearMessages();
+            loadHistory().then(function () {
+              connectWebSocket(data.ws_path || ('/ws/chat/' + roomId + '/'));
+            }).catch(function () {
+              connectWebSocket(data.ws_path || ('/ws/chat/' + roomId + '/'));
+            });
           })
           .catch(function () {
             index += 1;
@@ -143,6 +200,24 @@
       }
 
       tryBase();
+    }
+
+    function resumeChat() {
+      var stored = loadStoredRoom();
+      if (!stored || !stored.roomId || !stored.visitorToken) {
+        startChat();
+        return;
+      }
+      roomId = stored.roomId;
+      visitorToken = stored.visitorToken;
+      clearMessages();
+      setStatus('Oldingi chat tiklanmoqda...');
+      loadHistory().then(function () {
+        connectWebSocket('/ws/chat/' + roomId + '/');
+      }).catch(function () {
+        clearStoredRoom();
+        startChat();
+      });
     }
 
     function sendMessage() {
@@ -162,7 +237,7 @@
     });
     retryBtn.addEventListener('click', startChat);
 
-    startChat();
+    resumeChat();
   }
 
   window.CarInfoChat = { init: initChat };
