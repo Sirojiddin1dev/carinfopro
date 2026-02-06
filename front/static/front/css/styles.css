@@ -186,6 +186,7 @@ input[type="text"] {
   flex-direction: column;
   gap: 10px;
   align-items: flex-start;
+  justify-content: flex-end;
   padding: 12px;
   background: #faf6ef;
   border-radius: 14px;
@@ -218,7 +219,12 @@ input[type="text"] {
 
 .msg {
   max-width: 78%;
-  width: fit-content;
+  width: auto;
+  display: inline-flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  min-height: 0;
+  height: auto;
   padding: 8px 12px 6px;
   border-radius: 14px 14px 14px 4px;
   background: #ffffff;
@@ -235,6 +241,7 @@ input[type="text"] {
   background: #dff5e6;
   border-color: #c5e6d3;
   border-radius: 14px 14px 4px 14px;
+  margin-left: auto;
 }
 
 .msg .time {
