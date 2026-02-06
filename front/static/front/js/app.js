@@ -19,6 +19,14 @@
     el.className = 'msg' + (msg.sender === 'visitor' ? ' me' : '');
     el.innerHTML = '<div>' + msg.text + '</div><span class="time">' + msg.time + '</span>';
     container.appendChild(el);
+  }
+
+  function isNearBottom(container, threshold) {
+    var gap = container.scrollHeight - container.clientHeight - container.scrollTop;
+    return gap <= (threshold || 56);
+  }
+
+  function scrollToBottom(container) {
     container.scrollTop = container.scrollHeight;
   }
 
@@ -82,11 +90,15 @@
       return msg.sender + '|' + msg.text + '|' + msg.time;
     }
 
-    function addMessage(msg) {
+    function addMessage(msg, forceScroll) {
       var key = messageKey(msg);
       if (seen[key]) return;
+      var keepBottom = isNearBottom(list, 64);
       seen[key] = true;
       renderMessage(list, msg);
+      if (forceScroll || keepBottom) {
+        scrollToBottom(list);
+      }
     }
 
     function clearMessages() {
@@ -157,6 +169,7 @@
             created_at: m.created_at || null
           });
         });
+        scrollToBottom(list);
       });
     }
 

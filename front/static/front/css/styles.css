@@ -181,16 +181,22 @@ input[type="text"] {
 
 .messages {
   height: 320px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
   gap: 10px;
   align-items: flex-start;
-  justify-content: flex-end;
   padding: 12px;
   background: #faf6ef;
   border-radius: 14px;
   border: 1px solid #eaded1;
+}
+
+.messages::before {
+  content: "";
+  margin-top: auto;
 }
 
 .status {
