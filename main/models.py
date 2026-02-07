@@ -3,7 +3,6 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.contrib.auth.base_user import BaseUserManager
 from django.utils.translation import gettext_lazy as _
-from main.image_compressor import compress_uploaded_image
 
 
 class UserManager(BaseUserManager):
@@ -82,7 +81,9 @@ class CarModel(models.Model):
         image_changed = False
         if self.pk:
             old_image = CarModel.objects.filter(pk=self.pk).values_list('image', flat=True).first()
-            image_changed = (old_image != self.image.name)
+            old_image_name = old_image or ''
+            new_image_name = self.image.name if self.image else ''
+            image_changed = (old_image_name != new_image_name)
         else:
             image_changed = bool(self.image)
         
@@ -90,6 +91,7 @@ class CarModel(models.Model):
         
         if image_changed and self.image:
             try:
+                from main.image_compressor import compress_uploaded_image
                 compress_uploaded_image(self.image)
             except Exception:
                 pass
