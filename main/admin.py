@@ -8,7 +8,7 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from django.contrib import messages
 import qrcode
-from .models import User, ChatRoom, ChatMessage
+from .models import User, CarModel, ChatRoom, ChatMessage
 
 
 @admin.register(User)
@@ -236,3 +236,47 @@ class ChatMessageAdmin(admin.ModelAdmin):
         return (obj.content[:40] + '...') if len(obj.content) > 40 else obj.content
     
     short_content.short_description = _('Content')
+
+
+@admin.register(CarModel)
+class CarModelAdmin(admin.ModelAdmin):
+    """Admin configuration for car models."""
+    
+    list_display = [
+        'name',
+        'is_active',
+        'image_preview',
+        'created_at',
+    ]
+    
+    list_filter = [
+        'is_active',
+        'created_at',
+    ]
+    
+    search_fields = [
+        'name',
+    ]
+    
+    readonly_fields = [
+        'created_at',
+        'updated_at',
+        'image_preview',
+    ]
+    
+    fieldsets = (
+        (_('Car Model'), {
+            'fields': ('name', 'image', 'image_preview', 'is_active')
+        }),
+        (_('Timestamps'), {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" style="max-height: 80px; border-radius: 6px;" />', obj.image.url)
+        return "-"
+    
+    image_preview.short_description = _('Image')

@@ -4,9 +4,10 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
-from .models import User, ChatRoom
+from .models import User, CarModel, ChatRoom
 from .serializers import (
     UserSerializer,
+    CarModelSerializer,
     UserCreateByUUIDSerializer,
     LoginSerializer,
     TokenResponseSerializer,
@@ -41,7 +42,7 @@ class UserDetailAPIView(APIView):
     def get(self, request, user_id):
         """Get user public profile."""
         user = get_object_or_404(User, id=user_id, is_profile_public=True)
-        serializer = UserSerializer(user)
+        serializer = UserSerializer(user, context={'request': request})
         return Response(serializer.data)
 
 
@@ -62,7 +63,7 @@ class UserCreateByUUIDAPIView(APIView):
         - password: Account password
         
         Optional fields:
-        - full_name, phone_number_2, car_model, car_plate_number
+        - full_name, phone_number_2, car_model_id, car_plate_number
         - instagram, telegram, whatsapp
         """,
         request=UserCreateByUUIDSerializer,
@@ -100,7 +101,7 @@ class UserCreateByUUIDAPIView(APIView):
             
             return Response({
                 'message': 'User profile updated successfully.',
-                'user': UserSerializer(user).data,
+                'user': UserSerializer(user, context={'request': request}).data,
                 'tokens': {
                     'refresh': str(refresh),
                     'access': str(refresh.access_token),
@@ -150,7 +151,7 @@ class LoginAPIView(APIView):
             
             return Response({
                 'tokens': tokens,
-                'user': UserSerializer(user).data,
+                'user': UserSerializer(user, context={'request': request}).data,
             }, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -174,7 +175,7 @@ class UserProfileAPIView(APIView):
     )
     def get(self, request):
         """Get current user profile."""
-        serializer = UserSerializer(request.user)
+        serializer = UserSerializer(request.user, context={'request': request})
         return Response(serializer.data)
     
     @extend_schema(
@@ -190,7 +191,7 @@ class UserProfileAPIView(APIView):
     )
     def put(self, request):
         """Update current user profile."""
-        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        serializer = UserSerializer(request.user, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -229,7 +230,25 @@ class UserListAPIView(APIView):
     def get(self, request):
         """List all active users."""
         users = User.objects.filter(is_active=True, is_profile_public=True)
-        serializer = UserSerializer(users, many=True)
+        serializer = UserSerializer(users, many=True, context={'request': request})
+        return Response(serializer.data)
+
+
+class CarModelListAPIView(APIView):
+    """API view to list car models."""
+    permission_classes = [AllowAny]
+    
+    @extend_schema(
+        summary="List car models",
+        description="Get a list of active car models.",
+        responses={
+            200: OpenApiResponse(response=CarModelSerializer(many=True), description="Car models"),
+        },
+        tags=["Cars"],
+    )
+    def get(self, request):
+        models = CarModel.objects.filter(is_active=True).order_by('name')
+        serializer = CarModelSerializer(models, many=True, context={'request': request})
         return Response(serializer.data)
 
 

@@ -9,6 +9,7 @@ from .views import (
     UserCreateByUUIDAPIView,
     LoginAPIView,
     UserProfileAPIView,
+    CarModelListAPIView,
     ChatStartAPIView,
     ChatRoomListAPIView,
     ChatMessageListAPIView,
@@ -33,6 +34,9 @@ urlpatterns = [
     
     # Current user profile (requires authentication)
     path('api/profile/', UserProfileAPIView.as_view(), name='user-profile'),
+
+    # Car models
+    path('api/car-models/', CarModelListAPIView.as_view(), name='car-models'),
     
     # Chat
     path('api/chat/start/', ChatStartAPIView.as_view(), name='chat-start'),

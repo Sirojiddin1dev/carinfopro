@@ -26,7 +26,7 @@
           <div class="profile-meta">
             <div><span class="label">Tel</span> {{ user.phone_number|default:"-" }}</div>
             <div><span class="label">Tel 2</span> {{ user.phone_number_2|default:"-" }}</div>
-            <div><span class="label">Car</span> {{ user.car_model|default:"-" }}</div>
+            <div><span class="label">Car</span> {{ user.car_model.name|default:"-" }}</div>
             <div><span class="label">Plate</span> {{ user.car_plate_number|default:"-" }}</div>
             <div><span class="label">Instagram</span> {{ user.instagram|default:"-" }}</div>
             <div><span class="label">Telegram</span> {{ user.telegram|default:"-" }}</div>

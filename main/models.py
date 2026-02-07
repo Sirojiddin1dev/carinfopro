@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.contrib.auth.base_user import BaseUserManager
 from django.utils.translation import gettext_lazy as _
+from main.image_compressor import compress_uploaded_image
 
 
 class UserManager(BaseUserManager):
@@ -29,6 +30,69 @@ class UserManager(BaseUserManager):
             raise ValueError(_('Superuser must have is_superuser=True.'))
         
         return self.create_user(phone_number, password, **extra_fields)
+
+
+class CarModel(models.Model):
+    """Car model catalog."""
+    
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+        verbose_name=_('UUID')
+    )
+    
+    name = models.CharField(
+        max_length=255,
+        unique=True,
+        verbose_name=_('Name')
+    )
+    
+    image = models.ImageField(
+        upload_to='car_models/',
+        blank=True,
+        null=True,
+        verbose_name=_('Image')
+    )
+    
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name=_('Active')
+    )
+    
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_('Created At')
+    )
+    
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name=_('Updated At')
+    )
+    
+    class Meta:
+        verbose_name = _('Car Model')
+        verbose_name_plural = _('Car Models')
+        ordering = ['name']
+    
+    def __str__(self):
+        return self.name
+    
+    def save(self, *args, **kwargs):
+        image_changed = False
+        if self.pk:
+            old_image = CarModel.objects.filter(pk=self.pk).values_list('image', flat=True).first()
+            image_changed = (old_image != self.image.name)
+        else:
+            image_changed = bool(self.image)
+        
+        super().save(*args, **kwargs)
+        
+        if image_changed and self.image:
+            try:
+                compress_uploaded_image(self.image)
+            except Exception:
+                pass
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -66,9 +130,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     
     # Car information
-    car_model = models.CharField(
-        max_length=255,
+    car_model = models.ForeignKey(
+        CarModel,
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
+        related_name='users',
         verbose_name=_('Car Model')
     )
     

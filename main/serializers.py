@@ -1,11 +1,38 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import User, ChatRoom, ChatMessage
+from .models import User, CarModel, ChatRoom, ChatMessage
+
+
+class CarModelSerializer(serializers.ModelSerializer):
+    """Serializer for car model catalog."""
+    
+    image_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = CarModel
+        fields = ['id', 'name', 'image', 'image_url']
+    
+    def get_image_url(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
 
 
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for User model."""
+    
+    car_model = CarModelSerializer(read_only=True)
+    car_model_id = serializers.PrimaryKeyRelatedField(
+        source='car_model',
+        queryset=CarModel.objects.filter(is_active=True),
+        required=False,
+        allow_null=True,
+        write_only=True,
+    )
     
     class Meta:
         model = User
@@ -15,6 +42,7 @@ class UserSerializer(serializers.ModelSerializer):
             'full_name',
             'phone_number_2',
             'car_model',
+            'car_model_id',
             'car_plate_number',
             'instagram',
             'telegram',
@@ -35,6 +63,13 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         min_length=6,
         help_text='Password for account access'
     )
+    car_model_id = serializers.PrimaryKeyRelatedField(
+        source='car_model',
+        queryset=CarModel.objects.filter(is_active=True),
+        required=False,
+        allow_null=True,
+        write_only=True,
+    )
     
     class Meta:
         model = User
@@ -42,7 +77,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             'full_name',
             'phone_number',
             'phone_number_2',
-            'car_model',
+            'car_model_id',
             'car_plate_number',
             'instagram',
             'telegram',
@@ -68,7 +103,7 @@ class UserCreateByUUIDSerializer(serializers.Serializer):
     password = serializers.CharField(required=True, write_only=True, min_length=6)
     full_name = serializers.CharField(required=False, allow_blank=True, max_length=255)
     phone_number_2 = serializers.CharField(required=False, allow_blank=True, max_length=20)
-    car_model = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    car_model_id = serializers.UUIDField(required=False, allow_null=True)
     car_plate_number = serializers.CharField(required=False, allow_blank=True, max_length=50)
     instagram = serializers.CharField(required=False, allow_blank=True, max_length=255)
     telegram = serializers.CharField(required=False, allow_blank=True, max_length=255)
@@ -92,6 +127,13 @@ class UserCreateByUUIDSerializer(serializers.Serializer):
             raise serializers.ValidationError("This phone number is already registered.")
         return value
     
+    def validate_car_model_id(self, value):
+        if value is None:
+            return value
+        if not CarModel.objects.filter(id=value, is_active=True).exists():
+            raise serializers.ValidationError("Car model not found.")
+        return value
+    
     def save(self):
         """Update the user with provided data."""
         user = User.objects.get(id=self.validated_data['user_id'])
@@ -99,7 +141,8 @@ class UserCreateByUUIDSerializer(serializers.Serializer):
         user.phone_number = self.validated_data['phone_number']
         user.full_name = self.validated_data.get('full_name', '')
         user.phone_number_2 = self.validated_data.get('phone_number_2', '')
-        user.car_model = self.validated_data.get('car_model', '')
+        if 'car_model_id' in self.validated_data:
+            user.car_model_id = self.validated_data.get('car_model_id')
         user.car_plate_number = self.validated_data.get('car_plate_number', '')
         user.instagram = self.validated_data.get('instagram', '')
         user.telegram = self.validated_data.get('telegram', '')
