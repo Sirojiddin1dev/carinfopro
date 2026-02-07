@@ -120,7 +120,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'carinfopro_db',
         'USER': 'carinfopro_user',
-        'PASSWORD': 'STRONG_PASSWORD',
+        'PASSWORD': 'carinfopro_db_pass',
         'HOST': '127.0.0.1',
         'PORT': '5432',
     }
